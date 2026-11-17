@@ -422,19 +422,69 @@ CALL list_students;
 -- Copy the skeleton and write the IF block.
 -- =================================================================
 
--- your comment goes here
--- your statements go here
+-- reports a student's standing as a word, through an OUT parameter
+CREATE PROCEDURE student_standing(IN p_student_id INT,
+OUT p_standing VARCHAR(20))
+BEGIN
+-- the gpa goes here once we have looked it up
+DECLARE v_gpa DECIMAL(5,2);
+-- look it up. no matching student leaves v_gpa NULL
+SELECT gpa
+INTO v_gpa
+FROM students
+WHERE student_id = p_student_id;
+-- choose the label
+IF v_gpa IS NULL THEN 
+    SET p_standing = 'No such student';
+ElseIF v_gpa >= 90 THEN
+    SET p_standing = 'Honors';
+ElseIF v_gpa >= 85 THEN
+    SET p_standing = 'Good Standing';
+Else
+    Set p_standing = 'Needs Support';
+End IF;
 
+END
 
+CALL student_standing(7,@s);
+select @s;
+
+CALL student_standing(3,@s);
+select @s;
+
+Call student_standing(1,@s);
+select @s;
+
+Call student_standing(4,@s);
+select @s;
+
+Call student_standing(9,@s);
+select @s;
 -- =================================================================
 -- STEP 9. Rebuild add_score so it checks the score
 --
 -- Write the DROP. Copy the skeleton and fill the two gaps.
 -- =================================================================
 
--- your comment goes here
--- your statements go here
+-- adds a score only when it is a real score
+CREATE PROCEDURE add_score(IN p_test_name VARCHAR(20),
+    IN p_student_id INT,
+    IN p_score FLOAT)
+    BEGIN
+    IF p_score < 0 or p_score >  100 
+    THEN
+-- refuse, and say why
+    SELECT 'Score must be between 0 and 100' AS message;
+ELSE
+    Insert INTO test_scores (test_name, student_id, score)
+    Values(p_test_name, p_student_id, p_score);
 
+    UPDATE students
+    SET gpa = calculate_gpa(p_student_id)
+    WHERE student_id = p_student_id;
+
+    END IF;
+END
 
 -- =================================================================
 -- STEP 10. Rebuild record_attendance so it checks the student
@@ -442,10 +492,37 @@ CALL list_students;
 -- Yours from start to finish. The handout walks you through it.
 -- =================================================================
 
--- your comment goes here
--- your statements go here
+-- drop the procedure record_attendance and start a new one
+Drop procedure record_attendance;
+
+CREATE PROCEDURE record_attendance (IN p_student_id INT,
+IN p_status VARCHAR(10))
+
+BEGIN
+     DECLARE v_found INT DEFAULT 0;
+     SELECT COUNT(*)
+     INTO v_found
+     FROM students
+     WHERE student_id = p_student_id;
+
+     IF v_found = 0 THEN
+        SELECT "No Such Student" AS message;
+    
+    ELSE 
+            INSERT INTO attendance (student_id, status)
+    VALUES (p_student_id, p_status);
 
 
+    END IF;
+
+ 
+END
+
+CALL record_attendance(9, 'Present');
+
+CALL record_attendance(3, 'Late');
+
+SELECT * FROM attendance
 -- =================================================================
 -- STEP 11 and 12. Push to GitHub and submit the URL
 --
